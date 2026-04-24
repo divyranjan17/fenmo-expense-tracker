@@ -37,6 +37,7 @@ def validate_payload(payload):
     description = payload["description"].strip()
     expense_date = str(payload["date"]).strip()
 
+    # Presence/type checks above do not catch empty or whitespace-only strings.
     if not category:
         raise ValidationError("Invalid input: category is required")
     if not description:
