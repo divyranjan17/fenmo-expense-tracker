@@ -99,7 +99,7 @@ def create_expense():
         conn.execute("BEGIN IMMEDIATE")
         existing = conn.execute(
             """
-            SELECT request_hash, response_json
+            SELECT request_hash, response_json, status_code
             FROM idempotency_keys
             WHERE key = ?
             """,
@@ -114,7 +114,10 @@ def create_expense():
                     "IDEMPOTENCY_KEY_CONFLICT",
                     "The provided Idempotency-Key was used with a different request body.",
                 )
-            return jsonify(json.loads(existing["response_json"])), 200
+            return (
+                jsonify(json.loads(existing["response_json"])),
+                existing["status_code"],
+            )
 
         created_at = utc_timestamp()
         cursor = conn.execute(

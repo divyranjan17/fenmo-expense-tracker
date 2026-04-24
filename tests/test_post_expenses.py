@@ -128,7 +128,7 @@ class PostExpensesTestCase(unittest.TestCase):
         second = self.post_expense(key="retry-key")
 
         self.assertEqual(first.status_code, 201)
-        self.assertEqual(second.status_code, 200)
+        self.assertEqual(second.status_code, 201)
         self.assertEqual(first.get_json(), second.get_json())
         self.assertEqual(self.expense_count(), 1)
 
