@@ -72,7 +72,7 @@ def serialize_expense(row):
         "created_at": row["created_at"],
     }
 
-
+# POST /expenses endpoint
 @expenses_bp.post("/expenses")
 def create_expense():
     idempotency_key = request.headers.get("Idempotency-Key", "").strip()
@@ -156,3 +156,48 @@ def create_expense():
         raise
 
     return jsonify(response_body), 201
+
+# GET /expenses endpoint with optional category filter and date_desc sorting
+@expenses_bp.get("/expenses")
+def list_expenses():
+    category = request.args.get("category")
+    sort = request.args.get("sort")
+
+    params = []
+    where_clause = ""
+
+    if category is not None:
+        category = category.strip()
+        if not category:
+            return error_response(
+                400,
+                "VALIDATION_ERROR",
+                "Invalid input: category filter cannot be blank",
+            )
+        where_clause = "WHERE LOWER(category) = LOWER(?)"
+        params.append(category)
+
+    if sort is not None and sort != "date_desc":
+        return error_response(400, "VALIDATION_ERROR", "Invalid input: sort must be date_desc")
+
+    order_clause = "ORDER BY date DESC, created_at DESC, id DESC"
+    conn = get_db()
+    rows = conn.execute(
+        f"""
+        SELECT id, amount_paise, category, description, date, created_at
+        FROM expenses
+        {where_clause}
+        {order_clause}
+        """,
+        params,
+    ).fetchall()
+
+    total_paise = sum(row["amount_paise"] for row in rows)
+
+    return jsonify(
+        {
+            "expenses": [serialize_expense(row) for row in rows],
+            "total": format_paise(total_paise),
+            "total_paise": total_paise,
+        }
+    )
