@@ -1,16 +1,23 @@
 from pathlib import Path
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, send_from_directory
 
 from backend.db import init_db
 from backend.routes.expenses import expenses_bp
 
 
 def create_app(test_config=None):
-    frontend_dir = Path(__file__).resolve().parent.parent / "frontend"
-    app = Flask(__name__, static_folder=str(frontend_dir), static_url_path="")
+    base_dir = Path(__file__).resolve().parent.parent
+    frontend_dir = base_dir / "frontend"
+
+    app = Flask(
+        __name__,
+        static_folder=str(frontend_dir),
+        static_url_path=""
+    )
+
     app.config.from_mapping(
-        DATABASE="expenses.sqlite3",
+        DATABASE=str(base_dir / "expenses.sqlite3"),
     )
 
     if test_config:
@@ -21,7 +28,12 @@ def create_app(test_config=None):
 
     @app.get("/")
     def index():
-        return app.send_static_file("index.html")
+        return send_from_directory(app.static_folder, "index.html")
+
+    # ✅ CRITICAL: serve other frontend routes/files
+    @app.get("/<path:path>")
+    def serve_static(path):
+        return send_from_directory(app.static_folder, path)
 
     @app.errorhandler(500)
     def internal_server_error(_error):
@@ -36,4 +48,4 @@ def create_app(test_config=None):
 
 
 if __name__ == "__main__":
-    create_app().run(debug=True)
+    create_app().run(host="0.0.0.0", port=5000, debug=False)
